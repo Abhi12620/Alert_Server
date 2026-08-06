@@ -2,7 +2,7 @@
 // Talks to the Supabase (Postgres) database. This is the ONLY place SQL
 // lives, so the rest of the app just calls plain JS functions.
 //
-// Why Postgres and not a local file/SQLite: Render's free web service has
+// Why Postgres and not a local file/SQLite: many free web hosts have
 // an EPHEMERAL filesystem — any local file is wiped on every restart,
 // redeploy, or sleep/wake cycle. Supabase's free Postgres is a separate,
 // persistent service, so alerts survive restarts. See the setup guide
@@ -11,7 +11,7 @@
 const { Pool } = require('pg');
 
 if (!process.env.DATABASE_URL) {
-  console.error('[db] DATABASE_URL is not set. Add it in Render → Environment.');
+  console.error('[db] DATABASE_URL is not set. Add it to your environment variables.');
 }
 
 const pool = new Pool({

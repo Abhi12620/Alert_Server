@@ -6,13 +6,11 @@
 //   2. Run a background interval that polls Delta Exchange and evaluates
 //      every saved alert — this keeps running even with zero browser tabs
 //      open, which is the whole point.
-//   3. Expose GET /ping — a free external monitor (UptimeRobot etc.) hits
-//      this every few minutes so Render's free tier never spins the
-//      service down from inactivity. See SETUP.md.
+//   3. Expose GET /ping — a lightweight health check external monitors
+//      (UptimeRobot etc.) can hit to confirm the server is up.
 
 const express = require('express');
 const path = require('path');
-const crypto = require('crypto');
 const db = require('./db');
 const { fetchFuturesPrice, fetchOptionChain } = require('./delta');
 const { runCycle } = require('./alertEngine');
@@ -20,45 +18,8 @@ const { sendTelegram } = require('./telegram');
 
 const app = express();
 
-// ---- HTTP Basic Auth: protects the dashboard + all /api routes with a
-// username/password (set via env vars). /ping and /healthz are left OPEN
-// on purpose — UptimeRobot's keep-alive pings don't send credentials, so
-// locking those too would make the ping fail, the service would then sleep
-// after 15 min idle, and your alerts would stop running in the background.
-function timingSafeEqual(a, b) {
-  const bufA = Buffer.from(String(a));
-  const bufB = Buffer.from(String(b));
-  if (bufA.length !== bufB.length) return false;
-  return crypto.timingSafeEqual(bufA, bufB);
-}
-function basicAuth(req, res, next) {
-  const user = process.env.DASH_USER;
-  const pass = process.env.DASH_PASS;
-  if (!user || !pass) {
-    // no credentials configured on the server — fail closed rather than
-    // silently serving the dashboard unprotected
-    res.status(500).send('Dashboard login is not configured. Set DASH_USER and DASH_PASS in Render → Environment.');
-    return;
-  }
-  const header = req.headers.authorization || '';
-  const [scheme, encoded] = header.split(' ');
-  if (scheme === 'Basic' && encoded) {
-    const decoded = Buffer.from(encoded, 'base64').toString('utf8');
-    const sep = decoded.indexOf(':');
-    const reqUser = decoded.slice(0, sep);
-    const reqPass = decoded.slice(sep + 1);
-    if (timingSafeEqual(reqUser, user) && timingSafeEqual(reqPass, pass)) {
-      return next();
-    }
-  }
-  res.set('WWW-Authenticate', 'Basic realm="Alert Dashboard"');
-  res.status(401).send('Login required.');
-}
-
 app.use(express.json());
 
-// /ping and /healthz must be registered BEFORE the auth middleware so they
-// stay reachable without a login prompt.
 const POLL_MS = parseInt(process.env.POLL_MS || '2000', 10); // same 2s cadence as the live dashboards
 
 app.get('/ping', (req, res) => {
@@ -72,9 +33,6 @@ app.get('/healthz', async (req, res) => {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
-
-// everything registered after this line requires the dashboard login
-app.use(basicAuth);
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => {
