@@ -788,7 +788,7 @@
 <div class="alert-popover-overlay" id="settingsOverlay">
   <div class="settings-modal">
     <h4>Alerts</h4>
-    <p class="note">Alerts you set here run on the server 24/7 — you can close this tab, lock your phone, or turn off your laptop, and they'll still check every few seconds and message Telegram directly. Telegram bot token/chat ID are configured server-side (Render environment variables), not here.</p>
+    <p class="note">Alerts you set here run on the server 24/7 — you can close this tab, lock your phone, or turn off your laptop, and they'll still check every few seconds and message Telegram directly. Telegram bot token/chat ID are configured server-side (environment variables), not here.</p>
     <div id="activeAlertsList"></div>
     <div class="btnrow">
       <button class="test-btn" id="tgTestBtn">Send test message</button>
@@ -3512,7 +3512,7 @@ document.getElementById('alertRemoveBtn').addEventListener('click', async ()=>{
   closeAlertPopover();
 });
 
-// ---- settings modal: Telegram is configured server-side now (Render env
+// ---- settings modal: Telegram is configured server-side now (env
 // vars), so this is just a test button + the list of what's currently armed ----
 function renderActiveAlertsList(){
   const box = document.getElementById('activeAlertsList');
